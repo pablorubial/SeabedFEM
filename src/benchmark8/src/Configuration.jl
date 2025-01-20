@@ -106,7 +106,9 @@ k_S_clamp(ω) = ω/c_S_clamp(ω)
 R_PML = 1e-6 # Tolerence for PML reflection
 σ_0 = -3/4*log(R_PML)/d_PML # PML coefficient
 
-
+# PML coefficients for the computation of the analytical solution
+R_PML_analytical = 1e-50 # Tolerence for PML reflection
+σ_0_analytical = -3/4*log(R_PML_analytical)/d_PML # PML coefficient
 
 
   

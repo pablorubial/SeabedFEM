@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Erase all .vtu files of meshing
+rm -f ./data/*.vtu
+
+# Erase all .msh files
+rm -f ./data/*.msh
+
+# Erase all .vtu files of results
+rm -f ./results/*.vtu

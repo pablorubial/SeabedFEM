@@ -1,0 +1,289 @@
+\documentclass{article}[a4paper, 12pt]
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{booktabs}
+% \usepackage{bbm}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{xcolor} % to access the named colour LightGray
+\definecolor{LightGray}{gray}{0.9}
+\usepackage{graphics,graphicx}
+\usepackage{subcaption}     % For subfigures
+\usepackage{cancel}
+% \usepackage[outputdir=./build]{minted}
+% \usepackage{textgreek}
+\usepackage[
+    top=2cm,
+    bottom=2cm,
+    left=2cm,
+    right=2cm
+]{geometry}
+\usepackage{caption}    % caption options
+\captionsetup{labelfont=bf}
+\usepackage{empheq}
+\usepackage{bm}
+\usepackage{hyperref}
+\usepackage{biblatex} % Use the modern package
+\addbibresource{references.bib}
+
+% \input{styles/macros} % Adjust path if needed
+
+
+\DeclareMathOperator{\diver}{\mathrm{div}}
+\DeclareMathOperator{\grad}{\nabla}
+
+  
+\title{Biot-Stoll}
+\author{Pablo Rubial}
+\date{NumSeaHy}
+
+\begin{document}
+\maketitle
+
+\subsection*{Volume Attenuation}
+
+Plane-wave attenuation $\alpha$, whic is the quatity used in the theoretical equations of acoustics, is defined from a decay-law type differential equation:
+
+$$
+\frac{\mathrm{d} A} {\mathrm{d} x}=-\alpha A \implies A=A_{0} \operatorname{e x p} (-\alpha x ),
+$$
+
+where $A_0$ is the $\mathrm{rms}$ amplitude at $x=0$. The unit of $\alpha$ is $\mathrm{Np}/\mathrm{m}$ if $x$ is in meters. FOr example, a plane wave in free space with sound speed $c$, angular frequancy $\omega$ and hence, wavenumber $k \equiv  \frac{\omega}{c}$, that undergoes attenuation has the form 
+
+\begin{equation}\label{eq_1}
+    \exp( \mathrm{i} k x-\alpha x ) \equiv\exp\left[ i k x ( 1+i \delta) \right]
+\end{equation}
+
+where $\delta$ is called the loss tangent following \cite{jensen2011computational} nomenclature. Often, attenuation is included by adding an imaginary part to the sound speed i.e
+
+$$c = c_r - ic_i$$
+
+In term os the real and imaginary parts of the sound speed, the solution takes the form
+
+$$
+\exp\left( {\frac{i \omega x} {c}} \right)=\exp\left[ i \omega x \left( {\frac{c_{r}+i c_{i}} {c_{r}^{2}+c_{i}^{2}}} \right) \right].
+$$
+
+We see that for $c_i^2 \ll c_r^2$ (which is what one expects to happen)the previous expression can be written as dm  :
+
+\begin{equation}\label{eq_2}
+    \exp\left( {\frac{i \omega x} {c}} \right)=\exp\left[ i \omega x \left( {\frac{c_{r}+i c_{i}} {c_{r}^{2}}} \right) \right].
+\end{equation}
+
+By comparing Equation \eqref{eq_1} and Equation \eqref{eq_2}, the imaginary part of the sound speed is related to the attenuation in $\mathrm{Np}/\mathrm{m}$ by 
+
+\begin{equation}
+    c_i \approx \frac{\alpha}{\omega}c_r^2
+\end{equation}
+ 
+
+\subsection*{Biot-Stoll Model}
+
+The Biot-Stoll model is useful for analyzing the acoustic wave propagation in porous marine sediments \cite{kimura2007study}. It let us quantify the variation of the sound velocity with the frequency, and also the attenuation parameter. The biot model predicts three kinds of body waves: two longitudinal and one shear, may exist in a fluid-saturated porous medium in the abscense of boundaries. One of the longitudinal waves which is called "first kind waves" and the shear wave are similar to waves found in elastic media. In these waves, the notions of the frame and the pore fluid are nearly in phase, and the attenuation losses is relatevely small. In contrast, the longitudinal wave of the "second kind" is highly attenuated because the frame and the fluid move largely out of phase.
+
+The wave equations for the longitudinal wave in the porous saturated media derived by Biot are expressed as follows:
+
+\begin{equation}\label{eq_biot}
+    \begin{array} {l} {{\nabla^{2} ( H e-C \zeta)=\displaystyle\frac{\partial^{2}} {\partial t^{2}} ( \rho e-\rho_{\mathrm{f}} \zeta),}} \\[3.5ex] {{\nabla^{2} ( C e-M \zeta)=\displaystyle\frac{\partial^{2}} {\partial t^{2}} ( \rho_{\mathrm{f}} e-m \xi)-\displaystyle\frac{F \eta} {k} \displaystyle\frac{\partial\zeta} {\partial t} \,.}} \end{array}
+\end{equation}
+
+In Equation \eqref{eq_biot},
+
+
+$$ 
+\begin{aligned}
+    e&=\operatorname{d i v} ( \bm{u} ),\\[1.5ex]
+    \zeta&=\beta\operatorname{d i v} ( \bm{u}-\bm{U} ),
+\end{aligned}
+ $$
+
+ where $\bm{U}$ is the displacement of the pores fluid and $\beta$ is the porosity. $e$ is the dilation of the element attached to the frame and $\zeta$ is the volume of fluid that has flowed in or out of an element of volume attached to the frame. The terms inside the laplacians can be computed as follows:
+$$
+\begin{aligned} {H} & {{}=\frac{( K_{\mathrm{r}}-K_{\mathrm{b}} )^{2}} {D-K_{\mathrm{b}}}+K_{\mathrm{b}}+\frac{4} {3} \, \mu} \\[1.5ex]
+{C} & {{}=\frac{K_{\mathrm{r}} ( K_{\mathrm{r}}-K_{\mathrm{b}} )} {D-K_{\mathrm{b}}} \,,} \\[1.5ex]
+{M} & {{}=\frac{K_{\mathrm{r}}^{\, 2}} {D-K_{\mathrm{b}}} \,,} \\[1.5ex] 
+D&=K_{\mathrm{r}} \bigg[ 1+\beta\bigg( \frac{K_{\mathrm{r}}} {K_{\mathrm{f}}}-1 \bigg) \bigg].
+\end{aligned}
+$$
+
+The porosity can be computed using the following expression:
+
+$$ \beta = 0.3105 + 0.0552\phi, $$
+
+being $\phi$ the grain size, which can be calculated as follows:
+
+$$ \phi=-\operatorname{l o g}_{2}d,$$
+
+being $d$ the diameter of the grains in milimeters. $K_f$ and $K_r$ are the bulk moduli of the pore fluid (water) and grain, respectively. Here, $K_b$  bulk moduli of the frame, respectively and is expressed as follows:
+
+$$ K_{\mathrm{b}}=K_{\mathrm{b_r}} \! \left( 1+j \, \frac{\delta_{\mathrm{l}}} {\pi} \right),
+$$
+
+the real part of the bulk modulus can be related with the viscosity as follows:
+
+
+$$ K_\mathrm{b_r} = 10^{2.70932-4.25391\beta} 10^8,$$
+
+and $\mu$ is the shear moduli of the frame, that can be calculated as follows:
+
+$$ \mu=\mu_{\mathrm{b_r}} \! \left( 1+j \, \frac{\delta_{\mathrm{s}}} {\pi} \right),
+$$
+
+the real part of the shear moduli can be related with the density of the medium and the porosity as follows:
+
+$$ \mu_{\mathrm{r}}=\rho{c_{s}}^{2}, \; c_{s}=4. 4 0 \beta^{-2.69}
+$$
+
+the imaginary parts of the previuous expressions represent the loss incurred due to the friction between the grains. Here $\delta_l$ and $\delta_s$ represent the bulk logarithmic decrement and shear logarithmic decrement, respectively. The densisty of the porous medium can be written as follows: 
+$$ \rho=\beta\rho_{\mathrm{F}}+( 1-\beta) \rho_{\mathrm{G}},$$
+
+where $\beta$ is the porosity of the porous medium, $\rho_{\mathrm{F}}$ the density of the fluid and $\rho_{\mathrm{G}}$ the density of the grains. The added mass can be expressed as follows:
+
+$$ m = \gamma\frac{\rho_\mathrm{F}}{\beta},$$
+
+where $\gamma$ is the structure factor the some author propose the  following explicit formulat to calculate it 
+
+$$ \gamma = 1+r\left(\frac{1-\beta}{\beta}\right), $$ 
+
+where $r=0.5$ for isolated spherical particles and lies between 0 and 1 for other ellipsoidal shapes. The permeability $k$ is a parameter to be introduced in the model, it can be obtained from \cite{chotiros2017acoustics}, some authors use the Kozeny-Carman relation to compute it, but is more habitual to see it like a measure parameter associated with each material. The viscous correction factor $F$ is written as follows:
+\begin{equation}
+    F ( \kappa)=\frac{\kappa T ( \kappa)} {4 \bigg[ 1+i\displaystyle\frac{2 T ( \kappa)} {\kappa} \bigg]},
+\end{equation}
+
+where 
+\begin{equation}\label{eq_4}
+    T ( \kappa)={\frac{\mathrm{b e r}^{\prime} ( \kappa)+i \mathrm{b e i}^{\prime} ( \kappa)} {\mathrm{b e r} ( \kappa)+i \mathrm{b e i} ( \kappa)}},
+\end{equation}
+
+Following \cite{kelvinfunctions} the Kelvin functions can be related with the the Bessel functions (that are available in the \texttt{SpecialFunctions.jl} package) as follows:
+$$ J_\nu(e^{3\pi i/4}x) = \mathrm{ber}_\nu(x) + i\mathrm{bei}_\nu(x)$$
+
+and the derivative of the Kelvin functions can be computed as follows  \cite{dlmf_kelvin_2024}:
+
+
+$$ \mathrm{ber}'(x) = \frac{1}{\sqrt{2}}\left(\mathrm{ber}_1(x) + \mathrm{bei}_1(x)\right) $$
+$$ \mathrm{bei}'(x) = \frac{1}{\sqrt{2}}\left(\mathrm{bei}_1(x) - \mathrm{ber}_1(x)\right) $$
+
+Exists some computational problems when the Bessel functions with complex arguments are evaluated because it grows exponentially with the value of the complex arguments, and for high values of the argument, overflow problems arises. To deal with this, the scaled Bessel function implemented in the \texttt{SpecialFunctions.jl} has been used. They scale the function by multiplying the original Bessel function time $e^{-\left\vert \mathrm{Im}(e^{3\pi i/4}x) \right\vert }$. Using the $s$ subindex to denote scaled, the denominator of \eqref{eq_4} can be written as follows 
+
+\begin{equation}
+    \begin{array}{l}
+        {J_0(e^{3\pi i/4}x)_s = (\mathrm{ber}(x)+i \mathrm{bei}(x)) e^{-\left\vert \mathrm{Im}(e^{3\pi i/4}x) \right\vert }}\\[1.5ex]
+        \displaystyle \frac{J_0(e^{3\pi i/4}x)_s}{e^{-\left\vert \mathrm{Im}(e^{3\pi i/4}x) \right\vert }} = \mathrm{ber}(x)+i \mathrm{bei}(x)
+    \end{array}
+\end{equation}
+
+On the other hand, the numerator of Equation \eqref{eq_4} can be written as follows:
+
+\begin{equation}
+ \begin{aligned}
+    \mathrm{ber}'(x) + i\mathrm{bei}'(x) &= \frac{1}{\sqrt{2}}(\mathrm{ber}_1(x)+\mathrm{bei}_1(x)-i\mathrm{bei}_1(x)-i\mathrm{ber}_1(x))\\[1.5ex]
+    &= \frac{1}{\sqrt{2}}\left(\mathrm{ber}_1(x)+i\mathrm{bei}_1(x)-i\mathrm{ber}_1(x)+\mathrm{bei}_1(x)\right)\\[1.5ex]
+    & = \frac{1}{\sqrt{2}}\left( \frac{J_1(e^{3\pi i/4}x)_s}{e^{-\left\vert \mathrm{Im}(e^{3\pi i/4}x) \right\vert }}+\frac{1}{i} \frac{J_1(e^{3\pi i/4}x)_s}{e^{-\left\vert \mathrm{Im}(e^{3\pi i/4}x) \right\vert }}\right)\\[1.5ex]
+    &=\displaystyle \frac{1+\frac{1}{i}}{\sqrt{2}}\left( \frac{J_1(e^{3\pi i/4}x)_s}{e^{-\left\vert \mathrm{Im}(e^{3\pi i/4}x) \right\vert }}\right)
+\end{aligned}
+\end{equation}
+
+So finally the viscous correction factor $K$ can be written in terms of the scaled Bessel functions as follows:
+
+$$ F(\kappa) = \displaystyle \frac{\frac{1+\frac{1}{i}}{\sqrt{2}}J_1(e^{3\pi i/4}\kappa)_s}{J_0(e^{3\pi i/4}\kappa)_s}, $$
+
+the argument $\kappa$ is defined as follows:
+
+$$ \kappa = a \sqrt{\frac{\omega\rho_{\mathrm{F}}}{\eta}}, $$
+
+where $\eta$ is the viscosity of the fluid, $a$ is the poresize for spherical grains that can be obtained as follows:
+
+$$ a = \frac{d}{3} + \frac{\beta}{1-\beta}. $$
+
+To obtain a frequency equation, solutions for $e$ and $\zeta$ of the form
+
+\begin{equation}\label{harmonic_1}
+    e=A_{1} \exp[ i( \omega t-k_{1} x ) ],
+\end{equation}
+
+and 
+
+\begin{equation}\label{harmonic_2}
+    \zeta=A_{2} \exp[ i ( \omega t-k_{1} x ) ],
+\end{equation}
+
+
+are considered. In Equations \eqref{harmonic_1} and \eqref{harmonic_2} $k_l$ denotes the wavenumber for longitudinal wave and $\omega$ is the angular frequency. Upon transformations to the ferequency domain, the following equation results:
+
+\begin{equation}\label{determinant}
+    \left| \begin{array} {l l} {{H {k_{\mathrm{l}}}^{2}-\rho\omega^{2}}} & {{\rho_{\mathrm{f}} {\omega^{2}-C {k_{\mathrm{l}}}^{2}}}} \\ {{{C k_{\mathrm{l}}}^{2}-{\rho_{\mathrm{f}} \omega^{2}}}} & {{m {\omega^{2}-M {k_{\mathrm{l}}}^{2}-i} {\displaystyle \frac{\eta F \omega} {k}}}} \end{array} \right|=0.
+\end{equation}
+
+The roots of Equation \eqref{determinant} give the longitudinal wave velocity $c_l=\frac{\omega}{k_{l_r}}$ in m/s and the attenuation coefficient $\alpha_l=k_{l_i}$ in Np/m as a function of frequency for the longitudinal waves of the first (interesting one) and second kinds. Seen all relations provided, only the following parameters are needed to define the model, since the other ones can be computed using the existing relations:
+\begin{itemize}
+    \item $d$: diameter of the grains in mm.
+    \item $\rho:r$: density of the grains.
+    \item $K_r$: bulk modulus of the frame.
+    \item $k$: permeability of the frame.
+    \item $\gamma$: structure factor.
+    \item $\delta_l$: longitudinal logarithmic decrement.
+    \item $\delta_s$: shear logarithmic decrement.
+\end{itemize}
+
+Once the roots of Equation \eqref{determinant} are computed, the attenuation coefficient is known and we can construct the complex sound velocity for the porous domain as function of $\omega$ as well as the density $\rho_{\mathrm{P}}(\omega)$ and the bulk modulus $K_{\mathrm{P}}(\omega)$ including the dissipation, which are needed to run the Finite Element simulation using Gridap. In the following figures the results obtained using a Julia implementation of the Biot-Stoll model are shown, the results are the same presented by \cite{kimura2007study} for three different kind of sediments: very fine sand, medium sand and medium silt.
+
+\begin{figure}[h!]
+    \centering
+    % First subfigure
+    \begin{subfigure}[b]{0.45\textwidth}  % Each subfigure is 45% of the text width
+        \includegraphics{./figures_dif/fig1_cl_MediumSand.pdf}
+    \end{subfigure}
+    \hspace{0.15cm} 
+    % \hfill % Horizontal spacing between subfigures
+    % Second subfigure
+    \begin{subfigure}[b]{0.45\textwidth}
+        \includegraphics{./figures_dif/fig2_alpha_MediumSand.pdf}
+    \end{subfigure}
+    
+    \caption{ Frequency-dependent properties of a  medium sand material, showing (left) the phase velocity $c_l$ in m/s and (right) the attenuation coefficient 
+    $\alpha$ in dB/m as functions of frequency $f$ in Hz}
+\end{figure}
+
+\begin{figure}[h!]
+    \centering
+    % First subfigure
+    \begin{subfigure}[b]{0.45\textwidth}  % Each subfigure is 45% of the text width
+        \includegraphics{./figures_dif/fig1_cl_MediumSilt.pdf}
+    \end{subfigure}
+    \hspace{0.15cm} 
+    % \hfill % Horizontal spacing between subfigures
+    % Second subfigure
+    \begin{subfigure}[b]{0.45\textwidth}
+        \includegraphics{./figures_dif/fig2_alpha_MediumSilt.pdf}
+    \end{subfigure}
+    
+    \caption{ Frequency-dependent properties of a  medium silt material, showing (left) the phase velocity $c_l$ in m/s and (right) the attenuation coefficient 
+    $\alpha$ in dB/m as functions of frequency $f$ in Hz}
+\end{figure}
+
+\begin{figure}[h!]
+    \centering
+    % First subfigure
+    \begin{subfigure}[b]{0.45\textwidth}  % Each subfigure is 45% of the text width
+        \includegraphics{./figures_dif/fig1_cl_VeryFineSand.pdf}
+    \end{subfigure}
+    \hspace{0.15cm} 
+    % \hfill % Horizontal spacing between subfigures
+    % Second subfigure
+    \begin{subfigure}[b]{0.45\textwidth}
+        \includegraphics{./figures_dif/fig2_alpha_VeryFineSand.pdf}
+    \end{subfigure}
+    
+    \caption{ Frequency-dependent properties of a very fine sand material, showing (left) the phase velocity $c_l$ in m/s and (right) the attenuation coefficient 
+    $\alpha$ in dB/m as functions of frequency $f$ in Hz}
+\end{figure}
+
+
+
+
+
+\clearpage
+\printbibliography
+
+\end{document}

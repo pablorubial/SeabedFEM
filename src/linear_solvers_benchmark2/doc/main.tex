@@ -1,0 +1,147 @@
+\documentclass{article}[a4paper, 12pt]
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{booktabs}
+% \usepackage{bbm}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{xcolor} % to access the named colour LightGray
+\definecolor{LightGray}{gray}{0.9}
+\usepackage{graphics,graphicx}
+\usepackage{cancel}
+% \usepackage[outputdir=./build]{minted}
+% \usepackage{textgreek}
+\usepackage[
+    top=2cm,
+    bottom=2cm,
+    left=3cm,
+    right=3cm
+]{geometry}
+\usepackage{caption}    % caption options
+\captionsetup{labelfont=bf}
+\usepackage{empheq}
+\usepackage{bm}
+\usepackage{hyperref}
+\usepackage{import}
+\usepackage{xifthen}
+\usepackage{pdfpages}
+\usepackage{transparent}
+\graphicspath{{./}} % Current directory
+
+\newcommand{\incfig}[1]{%
+    \def\svgwidth{\columnwidth}
+    \import{./Figures/}{#1.pdf_tex}
+}
+
+% \graphicspath{{Figures/}}
+\DeclareMathOperator{\diver}{\mathrm{div}}
+\DeclareMathOperator{\grad}{\nabla}
+
+  
+\title{Some PETSc Benchmarks using Complex Numbers}
+\author{Pablo Rubial}
+\date{NumSeaHy}
+
+\begin{document}
+\maketitle
+
+The structure of PETSc installation makes it possible to install different versions and different configurations side by side. One can choose one you want to work with at run time (or build time) using \texttt{PETSC\_DIR} environment variable, choosing real and complex number support, for instance.
+
+For this we first need to install PETSc with different scalar-types and mark those installations with \texttt{PETS\_ARCH} environemnt variable. Then we can switch between different installations.
+
+% \begin{minted}{python}
+    
+%     # Real, 32-bit int
+%     python3 ./configure \
+%     PETSC\_ARCH=linux-gnu-real-32 \
+%     --with-scalar-type=real && \
+%     make PETSC\_DIR=/usr/local/petsc PETSC_ARCH=linux-gnu-real-32 ${MAKEFLAGS} all && \
+    
+%     # Complex, 32-bit int
+%     python3 ./configure \
+%     PETSC_ARCH=linux-gnu-complex-32 \
+%     --with-scalar-type=complex && \
+%     make PETSC_DIR=/usr/local/petsc PETSC_ARCH=linux-gnu-complex-32 ${MAKEFLAGS} all && \
+    
+%     # Real, 64-bit int
+%     python3 ./configure \
+%     PETSC_ARCH=linux-gnu-real-64 \
+%     --with-scalar-type=real && \
+%     make PETSC_DIR=/usr/local/petsc PETSC_ARCH=linux-gnu-real-64 ${MAKEFLAGS} all && \
+
+%     # Complex, 64-bit int
+%     python3 ./configure \
+%     PETSC_ARCH=linux-gnu-complex-64 \
+%     --with-scalar-type=complex && \
+%     make PETSC_DIR=/usr/local/petsc PETSC_ARCH=linux-gnu-complex-64 ${MAKEFLAGS} all && \
+% \end{minted}
+
+\subsection*{Manufactured solution method for the Helmholtz equation}
+
+\begin{figure}[h!]
+    \centering
+    \input{Figures/domain}
+    \caption{Rectangular domain for the Benchmark.}
+    \label{fig:domain}
+\end{figure}
+
+The idea here is construct a manifactured solution fot verify the behaviour of a GMRES solver using a AMG preconditioner for the Helmholtz equation. The Helmholtz equation can be written using the pressure as unknown as follows:        
+
+\begin{equation}\label{helmholtz}
+    \nabla^2\Pi(x,y) + \frac{\omega^2}{c^2}\Pi(x,y) = -f(x,y)
+\end{equation}
+
+Let us suppose, to make a source term $f$ appear using the manufactured solution, let us use a plane wave solution multiplied by some polynomials that makes the solution vanish on the boundary, this is:
+
+\begin{equation}
+    \Pi(x,y) = \displaystyle e^{i\left( k_xx + k_yy \right)}\left( L-x \right)\left( x \right)\left( t_{\mathrm{p}} -y\right)\left( y \right) =  \displaystyle e^{i\left( k_xx + k_yy \right)}\left( Lx-x^2 \right)\left( t_{\mathrm{p}}y -y^2\right),
+\end{equation}
+
+such that 
+$$ \frac{\omega^2}{c^2}\neq k_x^2 + k_y^. $$
+
+Let's compute the partial derivatives of $\Pi$ with respect to each of the variables, starting with the $x$
+
+\begin{equation*}
+    \begin{aligned}
+        \frac{\partial\Pi}{\partial x} &= \left( t_{\mathrm{p}}y-y^2 \right)\left( L-2x + ik_x(Lx-x^2) \right)e^{i\left( k_xx + k_yy \right)}\\[1.5ex]
+        & = \left( t_{\mathrm{p}}y-y^2 \right)\left( -ik_x x^2 + \left( ik_xL-2 \right)x + L\right)e^{i\left( k_xx + k_yy \right)} \\[2ex]   
+        \frac{\partial\Pi}{\partial y} &= \left( Lx-x^2 \right)\left( t_{\mathrm{p}}-2y + ik_y(t_{\mathrm{p}}y-y^2) \right)e^{i\left( k_xx + k_yy \right)}\\[1.5ex]
+        & = \left( Lx-x^2\right)\left( -ik_y y^2 + \left( ik_yt_{\mathrm{P}}-2 \right)y + t_{\mathrm{P}}\right)e^{i\left( k_xx + k_yy \right)} 
+    \end{aligned}
+\end{equation*}
+
+and the second derivative with respect to each of the variables can be calculated as follows:
+
+\begin{equation*}
+    \begin{aligned}
+        \frac{\partial^2\Pi}{\partial x^2} &= \left(t_{\mathrm{p}}y-y^2\right)\left[\left(-2ik_x x + ik_xL-2 \right)+ik_x\left( -ik_x x^2 + \left( ik_xL-2 \right)x + L\right) \right]e^{i\left( k_xx + k_yy \right)} \\[1.5ex]
+        &= \left(t_{\mathrm{p}}y-y^2\right)\left[\left(-2ik_x x + ik_xL-2 \right)+\left( k_x^2 x^2 -k_x^2Lx - 2ik_xx + ik_xL\right) \right]e^{i\left( k_xx + k_yy \right)}\\[1.5ex]
+        &= \left(t_{\mathrm{p}}y-y^2\right)\left[ k_x^2 x^2 - \left(4ik_x + k_x^2L \right)x + \left( 2ik_xL-2 \right)   \right]e^{i\left( k_xx + k_yy \right)}\\[2ex]   
+        \frac{\partial^2\Pi}{\partial y^2} &= \left(Lx-x^2\right)\left[\left(-2ik_y y + ik_yt_{\mathrm{p}}-2 \right)+ik_y\left( -ik_y y^2 + \left( ik_yt_{\mathrm{p}}-2 \right)y + t_{\mathrm{p}}\right) \right]e^{i\left( k_xx + k_yy \right)} \\[1.5ex]
+        &= \left(Lx-x^2\right)\left[\left(-2ik_y y + ik_yt_{\mathrm{p}}-2 \right)+\left( k_y^2 y^2 -k_y^2t_{\mathrm{p}}y - 2ik_yy + ik_yt_{\mathrm{p}}\right) \right]e^{i\left( k_xx + k_yy \right)}\\[1.5ex]
+        &= \left(Lx-x^2\right)\left[ k_y^2 y^2 - \left(4ik_y + k_y^2t_{\mathrm{p}} \right)y + \left( 2ik_yt_{\mathrm{p}}-2 \right)   \right]e^{i\left( k_xx + k_yy \right)} 
+    \end{aligned}
+\end{equation*}
+
+The point know is to see what is the source term that makes equation \eqref{helmholtz} been fulfilled, for this:
+
+\begin{equation}\label{eqlap}
+    \begin{aligned}
+        \nabla^2\Pi(x,y) = -(k_x^2 + k_y^2)\displaystyle e^{i\left( k_xx + k_yy \right),}
+    \end{aligned}
+\end{equation}
+
+so introducing this in Equation \eqref{helmholtz} it holds the $f$ should take the following form to fulfill Equation \eqref{helmholtz}:
+
+\begin{equation}
+    f = \left( \left( k_x^2 + k_y^2 \right) - \displaystyle \frac{\omega^2}{c^2} \right) \displaystyle e^{i\left( k_xx + k_yy \right)}
+\end{equation}
+
+\subsection*{Calculation of the resonance frequencies of the problem}
+
+We will use separation of variables technique to compute the resonance frequencies of the given problem, that can be formulated, as follows:
+
+$$ \Pi(x,y) = \Pi_1(x)\Pi_2(y) $$
+
+\end{document}

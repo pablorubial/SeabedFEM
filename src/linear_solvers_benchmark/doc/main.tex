@@ -1,0 +1,91 @@
+\documentclass{article}[a4paper, 12pt]
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{booktabs}
+% \usepackage{bbm}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{xcolor} % to access the named colour LightGray
+\definecolor{LightGray}{gray}{0.9}
+\usepackage{graphics,graphicx}
+\usepackage{cancel}
+% \usepackage{minted}
+\usepackage{listings}
+% \usepackage{textgreek}
+\usepackage[
+    top=2cm,
+    bottom=2cm,
+    left=3cm,
+    right=3cm
+]{geometry}
+\usepackage{caption}    % caption options
+\captionsetup{labelfont=bf}
+\usepackage{empheq}
+\usepackage{bm}
+\usepackage{hyperref}
+
+
+\DeclareMathOperator{\diver}{\mathrm{div}}
+\DeclareMathOperator{\grad}{\nabla}
+
+  
+\title{PETSc}
+\author{Pablo Rubial}
+\date{NumSeaHy}
+
+\begin{document}
+\maketitle
+
+The structure of PETSc installation makes it possible to install different versions and different configurations side by side. One can choose one you want to work with at run time (or build time) using \texttt{PETSC\_DIR} environment variable, choosing real and complex number support, for instance.
+
+For this we first need to install PETSc with different scalar-types and mark those installations with \texttt{PETS\_ARCH} environemnt variable. Then we can switch between different installations.
+
+% \begin{minted}{python}
+    
+%     # Real, 32-bit int
+%     python3 ./configure \
+%     PETSC\_ARCH=linux-gnu-real-32 \
+%     --with-scalar-type=real && \
+%     make PETSC\_DIR=/usr/local/petsc PETSC_ARCH=linux-gnu-real-32 ${MAKEFLAGS} all && \
+    
+%     # Complex, 32-bit int
+%     python3 ./configure \
+%     PETSC_ARCH=linux-gnu-complex-32 \
+%     --with-scalar-type=complex && \
+%     make PETSC_DIR=/usr/local/petsc PETSC_ARCH=linux-gnu-complex-32 ${MAKEFLAGS} all && \
+    
+%     # Real, 64-bit int
+%     python3 ./configure \
+%     PETSC_ARCH=linux-gnu-real-64 \
+%     --with-scalar-type=real && \
+%     make PETSC_DIR=/usr/local/petsc PETSC_ARCH=linux-gnu-real-64 ${MAKEFLAGS} all && \
+
+%     # Complex, 64-bit int
+%     python3 ./configure \
+%     PETSC_ARCH=linux-gnu-complex-64 \
+%     --with-scalar-type=complex && \
+%     make PETSC_DIR=/usr/local/petsc PETSC_ARCH=linux-gnu-complex-64 ${MAKEFLAGS} all && \
+% \end{minted}
+
+Searching in the network, I found a very old page relative to a Julia library that gives to you some indications about how to compile PETSc properly to then be used in Julia \url{https://friedmud.github.io/MOOSE.jl/installation/#parallelism}. After some trial and error with my computer, I was able to link my local PETSc installation with the GridapPETSc installation after install PETSc with the following flags:
+
+\begin{lstlisting}{language=bash}
+    python3 ./configure \                                                     
+    --PETSC_ARCH=linux-gnu-real-64 \ 
+    --with-cc=mpicc \ 
+    --with-cxx=mpicxx \
+    --with-fc=mpif90 \
+    --with-debugging=no \
+    --with-pic=1 \
+    --with-shared-libraries=1 \
+    --download-metis=1 \
+    --download-parmetis=1 \
+    --download-superlu_dist=1 \
+    --download-mumps=1 \
+    --download-scalapack=1 \
+    --download-hypre=1 \
+    --download-cmake
+\end{lstlisting}
+
+
+\end{document}
