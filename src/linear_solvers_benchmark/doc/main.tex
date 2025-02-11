@@ -9,8 +9,7 @@
 \definecolor{LightGray}{gray}{0.9}
 \usepackage{graphics,graphicx}
 \usepackage{cancel}
-% \usepackage{minted}
-\usepackage{listings}
+% \usepackage[outputdir=./build]{minted}
 % \usepackage{textgreek}
 \usepackage[
     top=2cm,
@@ -23,13 +22,23 @@
 \usepackage{empheq}
 \usepackage{bm}
 \usepackage{hyperref}
+\usepackage{import}
+\usepackage{xifthen}
+\usepackage{pdfpages}
+\usepackage{transparent}
+\graphicspath{{./}} % Current directory
 
+\newcommand{\incfig}[1]{%
+    \def\svgwidth{\columnwidth}
+    \import{./Figures/}{#1.pdf_tex}
+}
 
+% \graphicspath{{Figures/}}
 \DeclareMathOperator{\diver}{\mathrm{div}}
 \DeclareMathOperator{\grad}{\nabla}
 
   
-\title{PETSc}
+\title{Some PETSc Benchmarks using Complex Numbers}
 \author{Pablo Rubial}
 \date{NumSeaHy}
 
@@ -67,25 +76,158 @@ For this we first need to install PETSc with different scalar-types and mark tho
 %     make PETSC_DIR=/usr/local/petsc PETSC_ARCH=linux-gnu-complex-64 ${MAKEFLAGS} all && \
 % \end{minted}
 
-Searching in the network, I found a very old page relative to a Julia library that gives to you some indications about how to compile PETSc properly to then be used in Julia \url{https://friedmud.github.io/MOOSE.jl/installation/#parallelism}. After some trial and error with my computer, I was able to link my local PETSc installation with the GridapPETSc installation after install PETSc with the following flags:
+\subsection*{Manufactured solution method for the Helmholtz equation}
 
-\begin{lstlisting}{language=bash}
-    python3 ./configure \                                                     
-    --PETSC_ARCH=linux-gnu-real-64 \ 
-    --with-cc=mpicc \ 
-    --with-cxx=mpicxx \
-    --with-fc=mpif90 \
-    --with-debugging=no \
-    --with-pic=1 \
-    --with-shared-libraries=1 \
-    --download-metis=1 \
-    --download-parmetis=1 \
-    --download-superlu_dist=1 \
-    --download-mumps=1 \
-    --download-scalapack=1 \
-    --download-hypre=1 \
-    --download-cmake
-\end{lstlisting}
+\begin{figure}[h!]
+    \centering
+    \input{Figures/domain}
+    \caption{Rectangular domain for the Benchmark.}
+    \label{fig:domain}
+\end{figure}
 
+The idea here is construct a manifactured solution fot verify the behaviour of a GMRES solver using a AMG preconditioner for the Helmholtz equation. The Helmholtz equation can be written using the pressure as unknown as follows:        
+
+\begin{equation}\label{helmholtz}
+    \nabla^2\Pi(x,y) + \frac{\omega^2}{c^2}\Pi(x,y) = -f(x,y)
+\end{equation}
+
+Let us suppose, to make a source term $f$ appear using the manufactured solution, let us use a plane wave solution multiplied by some polynomials that makes the solution vanish on the boundary, this is:
+
+\begin{equation}
+    \Pi(x,y) = \displaystyle e^{i\left( k_xx + k_yy \right)}\left( L-x \right)\left( x \right)\left( t_{\mathrm{p}} -y\right)\left( y \right) =  \displaystyle e^{i\left( k_xx + k_yy \right)}\left( Lx-x^2 \right)\left( t_{\mathrm{p}}y -y^2\right),
+\end{equation}
+
+such that 
+$$ \frac{\omega^2}{c^2}\neq k_x^2 + k_y^. $$
+
+Let's compute the partial derivatives of $\Pi$ with respect to each of the variables, starting with the $x$
+
+\begin{equation*}
+    \begin{aligned}
+        \frac{\partial\Pi}{\partial x} &= \left( t_{\mathrm{p}}y-y^2 \right)\left( L-2x + ik_x(Lx-x^2) \right)e^{i\left( k_xx + k_yy \right)}\\[1.5ex]
+        & = \left( t_{\mathrm{p}}y-y^2 \right)\left( -ik_x x^2 + \left( ik_xL-2 \right)x + L\right)e^{i\left( k_xx + k_yy \right)} \\[2ex]   
+        \frac{\partial\Pi}{\partial y} &= \left( Lx-x^2 \right)\left( t_{\mathrm{p}}-2y + ik_y(t_{\mathrm{p}}y-y^2) \right)e^{i\left( k_xx + k_yy \right)}\\[1.5ex]
+        & = \left( Lx-x^2\right)\left( -ik_y y^2 + \left( ik_yt_{\mathrm{P}}-2 \right)y + t_{\mathrm{P}}\right)e^{i\left( k_xx + k_yy \right)} 
+    \end{aligned}
+\end{equation*}
+
+and the second derivative with respect to each of the variables can be calculated as follows:
+
+\begin{equation*}
+    \begin{aligned}
+        \frac{\partial^2\Pi}{\partial x^2} &= \left(t_{\mathrm{p}}y-y^2\right)\left[\left(-2ik_x x + ik_xL-2 \right)+ik_x\left( -ik_x x^2 + \left( ik_xL-2 \right)x + L\right) \right]e^{i\left( k_xx + k_yy \right)} \\[1.5ex]
+        &= \left(t_{\mathrm{p}}y-y^2\right)\left[\left(-2ik_x x + ik_xL-2 \right)+\left( k_x^2 x^2 -k_x^2Lx - 2ik_xx + ik_xL\right) \right]e^{i\left( k_xx + k_yy \right)}\\[1.5ex]
+        &= \left(t_{\mathrm{p}}y-y^2\right)\left[ k_x^2 x^2 - \left(4ik_x + k_x^2L \right)x + \left( 2ik_xL-2 \right)   \right]e^{i\left( k_xx + k_yy \right)}\\[2ex]   
+        \frac{\partial^2\Pi}{\partial y^2} &= \left(Lx-x^2\right)\left[\left(-2ik_y y + ik_yt_{\mathrm{p}}-2 \right)+ik_y\left( -ik_y y^2 + \left( ik_yt_{\mathrm{p}}-2 \right)y + t_{\mathrm{p}}\right) \right]e^{i\left( k_xx + k_yy \right)} \\[1.5ex]
+        &= \left(Lx-x^2\right)\left[\left(-2ik_y y + ik_yt_{\mathrm{p}}-2 \right)+\left( k_y^2 y^2 -k_y^2t_{\mathrm{p}}y - 2ik_yy + ik_yt_{\mathrm{p}}\right) \right]e^{i\left( k_xx + k_yy \right)}\\[1.5ex]
+        &= \left(Lx-x^2\right)\left[ k_y^2 y^2 - \left(4ik_y + k_y^2t_{\mathrm{p}} \right)y + \left( 2ik_yt_{\mathrm{p}}-2 \right)   \right]e^{i\left( k_xx + k_yy \right)} 
+    \end{aligned}
+\end{equation*}
+
+The point know is to see what is the source term that makes equation \eqref{helmholtz} been fulfilled, for this:
+
+% \begin{equation}\label{eqlap}
+%     \begin{aligned}
+%         \nabla^2\Pi(x,y) = -(k_x^2 + k_y^2)\displaystyle e^{i\left( k_xx + k_yy \right),}
+%     \end{aligned}
+% \end{equation}
+
+% so introducing this in Equation \eqref{helmholtz} it holds the $f$ should take the following form to fulfill Equation \eqref{helmholtz}:
+
+% \begin{equation}
+%     f = \left( \left( k_x^2 + k_y^2 \right) - \displaystyle \frac{\omega^2}{c^2} \right) \displaystyle e^{i\left( k_xx + k_yy \right)}
+% \end{equation}
+
+\subsection*{Calculation of the resonance frequencies of the problem}
+
+We will use separation of variables technique to compute the resonance frequencies of the given problem, that can be formulated, as follows:
+
+$$ \Pi(x,y) = \Pi_1(x)\Pi_2(y) $$
+
+and the laplacian of $\Pi(x,y)$ has the following form:
+
+
+$$ \Delta\Pi(x,y) = \frac{\mathrm{d}^{2} \Pi_{1}} {\mathrm{d} x^{2}} \Pi_{2} +\Pi_{1} \frac{\mathrm{d}^{2} \Pi_{2}} {\mathrm{d}y^{2}} 
+$$
+
+injecting this in the homogeneous Helmholtz equation it holds the following espectral problem:
+
+
+\begin{equation}\label{e_2}
+    \left\{\begin{array} {l l} {\displaystyle -\frac{\mathrm{d}^{2} \Pi_{1}} {\mathrm{d} x^{2}} \Pi_{2} -\Pi_{1} \frac{\mathrm{d}^{2} \Pi_{2}} {\mathrm{d} y^{2}} -\left( \frac{\omega} {c} \right)^{2} \Pi_{1} \Pi_{2} =0 ~ ~ ~ ~} & {~ ~ \text{in} ~ \Omega,} \\[2.5ex] {\Pi_1(x)\Pi_2(y)=0} & {~ \text{on} ~ \partial\Omega.} \\ \end{array} 
+    \right.
+\end{equation}
+
+To solve this problem we first imposse that:
+\begin{equation}\label{e_1}
+    \left\{\begin{array} {l l} {\displaystyle -\frac{\mathrm{d}^{2} \Pi_{1}} {\mathrm{d} x^{2}} =\left( \frac{\omega} {c} \right)^{2} \Pi_{1}  } & {\text{in} ~ \Omega,} \\[2.5ex] {\Pi_1(0)=\Pi_1(L)=0} & {~ \text{on} ~ \partial\Omega.} \\ \end{array} 
+    \right.
+\end{equation}
+
+
+the general solution of this problem is:
+
+
+$$ \Pi_1(x) = A_1\cos(\alpha_1x) + B_1\sin(\alpha_1y), $$
+
+ that impposing both boundary conditions to obtain the two constants it holds that the only way of obtain a solution different from the trivial one it holds that:
+
+
+$$ A_1 = 0 \qquad \alpha_1 = \frac{n\pi}{L} $$
+
+being $B_1$ an arbitrary constant. Subtituying Equation \eqref{e_2} into Equation \eqref{e_1}, it holds:
+
+\begin{equation}\label{e_3}
+    \left\{\begin{array} {l l} {\displaystyle -\frac{\mathrm{d}^{2} \Pi_{2}} {\mathrm{d} y^{2}} =\left( \frac{\omega^2} {c^2} - \alpha_1^2 \right) \Pi_{2}  } & {\text{in} ~ \Omega,} \\[2.5ex] {\Pi_2(0)=\Pi_2(t_{\mathrm{p}})=0} & {~ \text{on} ~ \partial\Omega.} \\ \end{array} 
+    \right.
+\end{equation}
+
+It can be shown, that the only possibiluty that generates a solution different from the trivial one arises when $\displaystyle \frac{\omega^2}{c^2}-\alpha_1^2>0$. In this case:
+
+
+$$ \frac{\mathrm{d}^{2} \Pi_{2}} {\mathrm{d} y^{2}} = -\left( \frac{\omega^2} {c^2} - \alpha_1^2 \right) \Pi_{2}= \alpha_2^2\Pi_{2},$$
+
+that the general solution of this equation has the same form of \eqref{e_2}:
+
+
+$$ \Pi_2(y) = A_2\cos(\alpha_2x) + B_2\sin(\alpha_2y), $$
+
+tha tsuing the boundary conditions the same solution arises:
+
+$$ A_2=0 \qquad  \alpha_2 = \frac{m\pi}{t_{\mathrm{p}}} $$
+
+Finally, it holds that the resonance frequencies of this problem to this given domain are given by:
+
+\begin{equation}
+    \omega_{nm} = c\pi \sqrt{\frac{n^2}{L^2}+\frac{m^2}{t_\mathrm{P}^2}}
+\end{equation}
+
+and the eigenfunctions associated with the resonance frequencies are
+
+\begin{equation}
+    \Pi_{nm} = \Pi(x)\Pi(y) = C\sin\left( \frac{n\pi}{L}x \right)\sin\left( \frac{m\pi}{t_\mathrm{P}}y \right) \qquad n,m \in \mathbb{N}
+\end{equation}
+
+The results of several benchmarks using GMRES are the following ones:
+
+\begin{table}[h!]
+    \centering
+    \caption{Benchmark Results: Residuals, Wave Numbers, Iterations, and Success}
+    \label{tab:benchmark_results}
+    \begin{tabular}{lllll}
+    \toprule
+    \textbf{Benchmark} & $k$ & \textbf{Final Residual} & \textbf{Iterations} & \textbf{Successful} \\
+    \midrule
+    Benchmark 1            & 1.88                      & $8.23 \times 10^{-11}$  & 11                  & Yes                 \\
+    Benchmark 2            & 0.02                      & $5.94 \times 10^{-11}$  & 11                  & Yes                  \\
+    Benchmark 3            & $k_r = 28.09$            & $9 \times 10^{-10}$  & 10920                & Yes                 \\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+
+
+$$ \left\{\begin{array} {l l} {-\frac{\mathrm{d}^{2} \Pi_{1}} {\mathrm{d} x^{2}}=\left( \frac{\omega} {c} \right)^{2} \Pi_{1}} & {\mathrm{~ i n ~} \Omega,} \\ {\Pi_{1} ( 0 )=\Pi_{1} ( L )=0} & {\mathrm{~ o n ~} \partial\Omega.} \\ \end{array} \right.
+$$
 
 \end{document}
