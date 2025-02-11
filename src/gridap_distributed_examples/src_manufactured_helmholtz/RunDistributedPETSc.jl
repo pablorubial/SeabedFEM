@@ -24,15 +24,15 @@ function main(distribute, nparts) #main(nparts, distribute, names, ω)
             
       # Functions to compute the tensors H, H^-1< for the fluid PML
      # Define the tensors H, H^-1 and the Jacobian for the fluid and porous PML (quadratic profile)
-      u(x) = exact_solution(x)
+      u(x) = exact_solution(x, k_x, k_y, L, t_P)
 
       # Load the mesh
-      model = GmshDiscreteModel(parts, "data/manufactured.msh")
+      model = GmshDiscreteModel(parts, "data/manufactured_helmholtz.msh")
 
       # Define the finite element space: Raviart-Thomas of order 1
       # Define the finite element space: Lagrange of order 1
-      k = 1
-      reffe = ReferenceFE(lagrangian, Float64,k)
+      degree = 1
+      reffe = ReferenceFE(lagrangian, Float64, degree)
       V = TestFESpace(model, reffe, conformity=:H1, dirichlet_tags=["left", "right", "top", "bottom"], vector_type=Vector{ComplexF64})
       U = TrialFESpace(V, [u, u, u, u])
 
@@ -42,49 +42,28 @@ function main(distribute, nparts) #main(nparts, distribute, names, ω)
       degree = 2
       dΩ = Measure(Ω, degree)
       
-      f(x) = -2*1im- 2
+      f(x) = -laplacian(x, k_x, k_y, L, t_P) - k_r^2*exact_solution(x, k_x, k_y, L, t_P)
 
-      a(u,v) = ∫( (1.0+0.0im)*(∇(v)⊙∇(u)) )*dΩ
+      a(u,v) = ∫( (1.0+0.0im)*(∇(v)⊙∇(u)) )*dΩ - ∫( k_r^2*(1.0+0.0im)*(u*v) )*dΩ
       b(v) = ∫( v*f )*dΩ
 
       # Assembly the system
       op = AffineFEOperator(a, b, U, V)
       # Solve the system
-
-      # options ="-pc_type gamg -ksp_type gmres"     
-      # options = "-pc_type gamg -ksp_type gmres -ksp_gmres_restart 30 -ksp_rtol 1e-5 -ksp_atol 1e-5 -ksp_converged_reason -ksp_error_if_not_converged true -ksp_monitor"
-      # options = "-ksp_type cg -pc_type gamg -ksp_monitor"
-      # options = "-ksp_type cg -pc_type gamg -ksp_monitor"
-      # options = "-ksp_type cg -pc_type gamg -ksp_monitor"
       
-      options = "-pc_type gamg -ksp_type gmres -ksp_gmres_restart 30 -ksp_atol 1.0e-8 -ksp_rtol 1e-8 -ksp_max_it 100000 -ksp_monitor"
+      # options = "-pc_type gamg -ksp_type gmres -ksp_gmres_restart 30 -ksp_rtol 1e-5 -ksp_atol 1e-5 -ksp_converged_reason -ksp_error_if_not_converged true -ksp_monitor"
+      
+      options = "-pc_type gamg -ksp_type gmres -ksp_gmres_restart 30 -ksp_atol 1.0e-10 -ksp_rtol 1e-10 -ksp_max_it 100000 -ksp_monitor"
       uh = GridapPETScComplex.with(args=split(options)) do
             ls = PETScLinearSolver()
             uh = solve(ls,op)
       end
-
-      # solver = PETScLinearSolver()
-      # Uh = solve(solver, op)
-      
-            # uh = (Jinv_cf) * ((Hm_cf) ⋅ Uh)
-            # u = CellField(u, Ω)
-            # error = u - uh
-
-            # uh_x = (u->u[1])∘uh
-            # uh_y = (u->u[2])∘uh
-
-            # writevtk(Ω, "results/demoRT", cellfields=["Real(uh)"=>real(uh_x), "Imag(uh)"=>imag(uh_x)])
-
-            # writevtk(Ω,"./results/result_novel"*names, cellfields=["Re(uh)"=>real(uh), "Im(uh)"=>imag(uh),
-            #                                                       "Re(u)"=>real(u), "Im(u)"=>imag(u),
-            #                                                       "Re(error)"=>real(error), "Im(error)"=>imag(error)])
-       #GridapPetscdo
       
       u_ex = CellField(u, Ω)
 
       e = u_ex - uh
 
-      writevtk(Ω,"./results/results_manufactured/results", cellfields=["Re(uh)"=>real(uh), "Im(u_h)"=>imag(uh),
+      writevtk(Ω,"./results/results_manufactured_bench3/results", cellfields=["Re(uh)"=>real(uh), "Im(u_h)"=>imag(uh),
                                                                   "Re(u)"=>real(u_ex), "Im(u)"=>imag(u_ex),
                                                                   "Re(error)"=>real(e), "Im(error)"=>imag(e)])     
 end

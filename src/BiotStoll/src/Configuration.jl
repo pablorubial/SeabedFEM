@@ -61,9 +61,9 @@ Aₛ = 1/Nₛ # Amplitude of the sonar transducer [Pa]
     α_max = 2*pi # Maximum angle of rotation the ellipse [rad]
     tol_ellipse = 2 * a_0 # Tolerance for the ellipses to avoid collisions with the boundaries of the physical domain
 
-# Frequency and angular frequency
-f = 35e3 # Frequency [Hz]
-ω = 2 * π * f # Angular frequency [rad/s]
+# Frequency and angular frequency higuest value in the frequency sweep
+f_max = 35e3 # Frequency [Hz]
+ω_max = 2 * π * f_max # Angular frequency [rad/s]
 
 # Transducer pressure [Pa]
 P0 = 1
@@ -76,9 +76,9 @@ P0 = 1
     η_F = 1.0e-3 # Dynamic viscosity of the fluid [Pa s]
     
     # Define the physical properties of the porous domain ==> Biot-Stoll
-    sediment = predefined_sediment("MediumSilt"; ρF=ρ_F(ω), KF=ρ_F(ω)*c_F(ω)^2, η=η_F) # Check list_sediments() for more options of predefined sediments
-    ρ_P(ω) = sediment.β * sediment.ρF + (1 - sediment.β) * sediment.ρr
-    C_P(ω) = compute_wave_properties(ω, sediment)[1] + 1im*compute_wave_properties(ω, sediment)[2]/ω*compute_wave_properties(ω, sediment)[1]^2 
+    sediment(ω) = predefined_sediment("MediumSilt"; ρF=ρ_F(ω), KF=ρ_F(ω)*c_F(ω)^2, η=η_F) # Check list_sediment(ω)s() for more options of predefined sediment(ω)s
+    ρ_P(ω) = sediment(ω).β * sediment(ω).ρF + (1 - sediment(ω).β) * sediment(ω).ρr # Mass density of the porous domain [kg/m^3]
+    C_P(ω) = compute_wave_properties(ω, sediment(ω))[1] + 1im*compute_wave_properties(ω, sediment(ω))[2]/ω*compute_wave_properties(ω, sediment(ω))[1]^2 # [1] returns the real part of the phase velocity and [2] the attenuation coefficient α
 
     # Define the physical properties of the circle scattering object when is considered porous
     ρ_S_circle(ω) = 3000. # Mass density of the circle scattering object [kg/m^3]

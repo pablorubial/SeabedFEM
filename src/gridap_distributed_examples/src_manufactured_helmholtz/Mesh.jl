@@ -16,7 +16,8 @@ include("Configuration.jl")
 gmsh.initialize()
 gmsh.model.add("ManufacturedSolution")
 # h = c/(20*freq) # See how to extract this value from the value that Andres specified to me: h = (c/f)/15
-h = 0.005
+# # h = 0.005
+h = c/(20*f_r)
 
 
 # Corners of Porous Domain
